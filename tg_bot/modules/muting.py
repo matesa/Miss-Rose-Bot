@@ -62,7 +62,6 @@ def mute(bot: Bot, update: Update, args: List[str]) -> str:
 @loggable
 def unmute(bot: Bot, update: Update, args: List[str]) -> str:
     chat = update.effective_chat  # type: Optional[Chat]
-    user = update.effective_user  # type: Optional[User]
     message = update.effective_message  # type: Optional[Message]
 
     user_id = extract_user(message, args)
@@ -72,7 +71,7 @@ def unmute(bot: Bot, update: Update, args: List[str]) -> str:
 
     member = chat.get_member(int(user_id))
 
-    if member.status != 'kicked' and member.status != 'left':
+    if member.status not in ['kicked', 'left']:
         if member.can_send_messages and member.can_send_media_messages \
                 and member.can_send_other_messages and member.can_add_web_page_previews:
             message.reply_text("This user already has the right to speak.")
@@ -83,6 +82,7 @@ def unmute(bot: Bot, update: Update, args: List[str]) -> str:
                                      can_send_other_messages=True,
                                      can_add_web_page_previews=True)
             message.reply_text("Unmuted!")
+            user = update.effective_user  # type: Optional[User]
             return "<b>{}:</b>" \
                    "\n#UNMUTE" \
                    "\n<b>Admin:</b> {}" \
@@ -115,12 +115,11 @@ def temp_mute(bot: Bot, update: Update, args: List[str]) -> str:
     try:
         member = chat.get_member(user_id)
     except BadRequest as excp:
-        if excp.message == "User not found":
-            message.reply_text("I can't seem to find this user")
-            return ""
-        else:
+        if excp.message != "User not found":
             raise
 
+        message.reply_text("I can't seem to find this user")
+        return ""
     if is_user_admin(chat, user_id, member):
         message.reply_text("I really wish I could mute admins...")
         return ""
@@ -136,11 +135,7 @@ def temp_mute(bot: Bot, update: Update, args: List[str]) -> str:
     split_reason = reason.split(None, 1)
 
     time_val = split_reason[0].lower()
-    if len(split_reason) > 1:
-        reason = split_reason[1]
-    else:
-        reason = ""
-
+    reason = split_reason[1] if len(split_reason) > 1 else ""
     mutetime = extract_time(message, time_val)
 
     if not mutetime:
